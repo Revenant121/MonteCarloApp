@@ -49,6 +49,25 @@ namespace MonteCarloApp
             chartArea.AxisX.Maximum = x0 + R + 2;
             chartArea.AxisY.Minimum = y0 - R - 2;
             chartArea.AxisY.Maximum = y0 + R + 2;
+            chartArea.AxisX.ScaleView.Zoomable = false;
+            chartArea.AxisY.ScaleView.Zoomable = false;
+            chartArea.AxisX.IsStartedFromZero = false;
+            chartArea.AxisY.IsStartedFromZero = false;
+
+         
+            chartArea.AxisX.IntervalAutoMode = IntervalAutoMode.VariableCount;
+            chartArea.AxisY.IntervalAutoMode = IntervalAutoMode.VariableCount;
+            chartArea.Position.Auto = false;
+            chartArea.Position.Width = 100;
+            chartArea.Position.Height = 100;
+            chartArea.Position.X = 0;
+            chartArea.Position.Y = 0;
+            chartArea.InnerPlotPosition.Auto = false;
+            chartArea.InnerPlotPosition.Width = 90;
+            chartArea.InnerPlotPosition.Height = 90;
+            chartArea.InnerPlotPosition.X = 5;
+            chartArea.InnerPlotPosition.Y = 5;
+
             chart.ChartAreas.Add(chartArea);
             mainLayout.Controls.Add(chart, 0, 0);
             mainLayout.SetRowSpan(chart, 2);
@@ -59,7 +78,7 @@ namespace MonteCarloApp
 
             var inputN = new TextBox
             {
-                Text = "???",
+                Text = "Введите N",
                 Dock = DockStyle.Top,
                 Width = buttonWidth,
                 Height = buttonHeight,
@@ -120,25 +139,35 @@ namespace MonteCarloApp
 
             btnRun.Click += (s, e) =>
             {
-                if (!int.TryParse(inputN.Text, out int N)) return;
+                if (!int.TryParse(inputN.Text, out int N) || N <= 0)
+                    return;
 
                 var (area, xs, ys, mask) = MonteCarlo.Run(N);
+                double fraction = mask.FindAll(b => b).Count / (double)N;
+                double boxArea = (x0 + R + 2 - (x0 - R - 2)) * (y0 + R + 2 - (y0 - R - 2));
+                double stderr = Math.Sqrt(fraction * (1 - fraction) / N) * boxArea;
+                double relError = stderr / area * 100;
+
                 chart.Series.Clear();
                 chart.Titles.Clear();
-                chart.Titles.Add($"Площадь ≈ {area:F4}");
+
+                string title = $"Площадь сегмента: {area:F4} ± {stderr:F4} (погр. {relError:F2}%)";
+                chart.Titles.Add(title);
+                chart.Titles[0].Font = new Font("Segoe UI", 12, FontStyle.Bold);
+                chart.Titles[0].ForeColor = Color.Black;
 
                 var inSeg = new Series("В сегменте")
                 {
                     ChartType = SeriesChartType.Point,
                     MarkerSize = 2,
-                    Color = Color.Cyan
+                    Color = Color.DeepSkyBlue
                 };
 
                 var outSeg = new Series("Вне сегмента")
                 {
                     ChartType = SeriesChartType.Point,
                     MarkerSize = 2,
-                    Color = Color.Gray
+                    Color = Color.LightGray
                 };
 
                 for (int i = 0; i < xs.Count; i++)
@@ -152,8 +181,18 @@ namespace MonteCarloApp
                 chart.Series.Add(CreateCircleSeries(x0, y0, R));
                 chart.Series.Add(CreateCLine(C));
 
+                chart.Legends.Clear();
+                chart.Legends.Add(new Legend
+                {
+                    Docking = Docking.Top,
+                    Alignment = StringAlignment.Center,
+                    Font = new Font("Segoe UI", 10),
+                    LegendStyle = LegendStyle.Table
+                });
+
                 results.Add(new ResultEntry { N = N, SegmentArea = area });
             };
+
 
             btnAnalyze.Click += (s, e) =>
             {

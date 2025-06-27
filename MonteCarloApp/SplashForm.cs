@@ -27,7 +27,7 @@ namespace MonteCarloApp
                 RowCount = 4,
                 BackColor = System.Drawing.Color.FromArgb(30, 30, 30)
             };
-
+                
             var labelAuthor = new Label
             {
                 Text = "Автор: Церенов Л.Е.",
